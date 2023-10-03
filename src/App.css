@@ -99,6 +99,7 @@ body {
   outline: none;
   cursor: pointer;
   transition: color 0.2s ease;
+  border-radius: 25px;
 }
 
 .categories button:hover,
@@ -226,4 +227,8 @@ body {
 
 .dark-mode .news-read-more:hover {
   color: #bbb;
+}
+
+.latest-news:hover{
+  cursor: pointer;
 }
