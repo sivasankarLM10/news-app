@@ -58,6 +58,10 @@ function App() {
     speechSynthesis.speak(utteranceDescription);
   };
 
+  const refreshPage =() =>{
+    window.location.reload()
+  }
+
   
 
   return (
@@ -72,7 +76,7 @@ function App() {
           />
           <label htmlFor="darkModeToggle" className="toggle-label"></label>
         </div>
-        <h1>Latest News</h1>
+        <h1 className='latest-news' onClick={refreshPage}>Latest News</h1>
         <div className="categories">
           {categories.map((cat) => (
             <button
