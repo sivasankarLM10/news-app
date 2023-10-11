@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './App.css';
-
-
 
 function App() {
   const [news, setNews] = useState([]);
   const [category, setCategory] = useState('general');
   const [darkMode, setDarkMode] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speakingArticle, setSpeakingArticle] = useState(null);
 
   const categories = [
     { name: 'General', value: 'general' },
@@ -19,10 +19,12 @@ function App() {
     { name: 'Technology', value: 'technology' },
   ];
 
+  const utteranceRef = useRef();
+
   useEffect(() => {
     const fetchData = async (category) => {
       const response = await axios.get(
-        `https://newsapi.org/v2/top-headlines?country=in&apiKey=25bdfdb7661242c88579756412d99878`
+        `https://newsapi.org/v2/top-headlines?country=in&category=${category}&apiKey=25bdfdb7661242c88579756412d99878`
       );
       setNews(response.data.articles);
     };
@@ -43,26 +45,37 @@ function App() {
     }
   }, [darkMode]);
 
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
-
-  
-
-  const speakArticle = (text,description) => {
+  const speakArticle = (text, description) => {
     const speechSynthesis = window.speechSynthesis;
-    const utteranceTitle = new SpeechSynthesisUtterance(text);
-    const utteranceDescription = new SpeechSynthesisUtterance(description);
-    // speechSynthesis.speak(utterance);
-    speechSynthesis.speak(utteranceTitle);
-    speechSynthesis.speak(utteranceDescription);
+
+    if (isSpeaking) {
+      // If speech is currently active, stop it.
+      speechSynthesis.cancel();
+      setIsSpeaking(false);
+      setSpeakingArticle(null);
+    } else {
+      // Start speaking the article.
+      const utteranceTitle = new SpeechSynthesisUtterance(text);
+      const utteranceDescription = new SpeechSynthesisUtterance(description);
+
+      // Combine title and description into a single utterance.
+      const combinedUtterance = new SpeechSynthesisUtterance(`${text}. ${description}`);
+
+      utteranceRef.current = combinedUtterance;
+
+      utteranceRef.current.onend = () => {
+        setIsSpeaking(false);
+        setSpeakingArticle(null);
+      };
+
+      speechSynthesis.speak(combinedUtterance);
+      setIsSpeaking(true);
+      setSpeakingArticle(text);
+    }
   };
-
-  const refreshPage =() =>{
-    window.location.reload()
-  }
-
-  
+  const refreshPage = () => {
+    window.location.reload();
+  };
 
   return (
     <div className="container">
@@ -72,11 +85,11 @@ function App() {
             type="checkbox"
             id="darkModeToggle"
             checked={darkMode}
-            onChange={toggleDarkMode}
+            onChange={() => setDarkMode(!darkMode)}
           />
           <label htmlFor="darkModeToggle" className="toggle-label"></label>
         </div>
-        <h1 className='latest-news' onClick={refreshPage}>Latest News</h1>
+        <h1 className='latest-news' onClick={refreshPage}>NEWS API</h1>
         <div className="categories">
           {categories.map((cat) => (
             <button
@@ -94,7 +107,10 @@ function App() {
           {news.map((article) => (
             <div key={article.title} className="news-item">
               <div className="news-image">
-                <img src={article.urlToImage} alt={article.title} />
+                <img
+                  src={article.urlToImage || getDefaultImageForCategory(category)}
+                  alt={article.title}
+                />
               </div>
               <div className="news-content">
                 <h2 className="news-title">{article.title}</h2>
@@ -104,13 +120,16 @@ function App() {
                     ? `${article.description.substring(0, 200)}...`
                     : article.description}
                   </p>
-               )}
+                )}
                 <a className="news-read-more" href={article.url}>
                   Read more
                 </a>
                 <button
                   className="news-text-to-speech"
-                  onClick={() => speakArticle(article.title,article.description)}>listen
+                  onClick={() => speakArticle(article.title, article.description)}
+                  onDoubleClick={() => speakArticle('', '')}
+                >
+                  {isSpeaking && speakingArticle === article.title ? 'Stop' : 'Listen'}
                 </button>
               </div>
             </div>
